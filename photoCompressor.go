@@ -12,14 +12,19 @@ import (
 )
 
 type PhotoCompressor struct {
-	DirPath   string
-	BunchSize int8
-	OutputDir string
+	DirPath       string
+	BunchSize     int8
+	OutputDir     string
+	CompressLevel int
 }
 
 func (compressor *PhotoCompressor) Run() error {
 	startTime := time.Now()
-	defer printDuration(startTime)
+	defer func() {
+		printDuration(startTime)
+		printDirSize(compressor.DirPath, "Input directory size", "red")
+		printDirSize(compressor.OutputDir, "Output directory size", "green")
+	}()
 
 	err := createDirIfNotExist(compressor.OutputDir)
 	if err != nil {
@@ -65,7 +70,7 @@ func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) err
 	case ".jpg", ".jpeg", ".png":
 		outputPath = strings.TrimSuffix(outputPath, ext) + ".jpg"
 		err := ffmpeg.Input(path).
-			Output(outputPath, ffmpeg.KwArgs{"q:v": 25}).
+			Output(outputPath, ffmpeg.KwArgs{"q:v": compressor.CompressLevel}).
 			OverWriteOutput().
 			Run()
 		if err != nil {
@@ -80,7 +85,12 @@ func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) err
 	case ".mp4", ".avi", ".mov", ".mkv":
 		outputPath = strings.TrimSuffix(outputPath, ext) + ".mp4"
 		err := ffmpeg.Input(path).
-			Output(outputPath, ffmpeg.KwArgs{"c:v": "libx264", "crf": 23}).
+			Output(outputPath, ffmpeg.KwArgs{
+				"c:v": "libx264",
+				"crf": 28,   // Higher compression
+				"r":   30,   // Fixed framerate (e.g., 30 fps)
+				"b:v": "1M", // Bitrate (e.g., 1 Mbps)
+			}).
 			OverWriteOutput().
 			Run()
 		if err != nil {
@@ -114,12 +124,38 @@ func copyFile(path string, outputDir string) error {
 func printDuration(startTime time.Time) {
 	duration := time.Since(startTime)
 	if duration.Minutes() >= 1 {
-		fmt.Printf("Total working time: %v minutes\n", duration.Minutes())
+		fmt.Printf("Total working time: %.2f minutes\n", float64(duration.Minutes()))
 	} else if duration.Seconds() >= 1 {
-		fmt.Printf("Total working time: %v seconds\n", duration.Seconds())
+		fmt.Printf("Total working time: %.2f seconds\n", float64(duration.Seconds()))
 	} else {
-		fmt.Printf("Total working time: %v milliseconds\n", duration.Milliseconds())
+		fmt.Printf("Total working time: %.2f milliseconds\n", float64(duration.Milliseconds()))
 	}
+}
+
+func printDirSize(dirPath, label, colorFlag string) {
+	var size int64
+	err := filepath.Walk(dirPath, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	if err != nil {
+		logError(fmt.Errorf("Error calculating directory size: %w", err))
+		return
+	}
+
+	var colorCode string
+	if colorFlag == "red" {
+		colorCode = "\033[1m\033[31m" // Bold red
+	} else {
+		colorCode = "\033[1m\033[32m" // Bold green
+	}
+
+	fmt.Printf("\033[1m\033[33m%s:\033[0m %s%.2f GB\033[0m\n", label, colorCode, float64(size)/(1024*1024*1024))
 }
 
 func closeFileHandler(file *os.File) {

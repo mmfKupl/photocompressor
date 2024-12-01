@@ -22,6 +22,7 @@ func main() {
 	inputDir := flag.String("input", "", "Input directory path")
 	outputDir := flag.String("output", "", "Output directory path")
 	bunchSize := flag.Int("bunch", 5, "Bunch size")
+	compressLevel := flag.Int("compressLevel", 25, "Compression level")
 
 	// Parse flags
 	flag.Parse()
@@ -58,9 +59,10 @@ func main() {
 	}
 
 	compressor := photocompressor.PhotoCompressor{
-		DirPath:   *inputDir,
-		BunchSize: int8(*bunchSize),
-		OutputDir: *outputDir,
+		DirPath:       *inputDir,
+		BunchSize:     int8(*bunchSize),
+		OutputDir:     *outputDir,
+		CompressLevel: *compressLevel,
 	}
 
 	err := compressor.Run()
