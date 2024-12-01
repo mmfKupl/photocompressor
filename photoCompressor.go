@@ -117,10 +117,3 @@ func copyFile(path string, outputDir string) error {
 	_, err = io.Copy(outputFile, inputFile)
 	return err
 }
-
-func closeFileHandler(file *os.File) {
-	err := file.Close()
-	if err != nil {
-		fmt.Println("Error closing file:", err)
-	}
-}

@@ -3,6 +3,7 @@ package photocompressor
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -28,7 +29,7 @@ func parseMetadata(path string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer closeFileHandler(file)
 
 	var photoMeta photoMetadata
 	var albumMeta albumMetadata
@@ -50,4 +51,11 @@ func parseMetadata(path string) (interface{}, error) {
 	}
 
 	return nil, errors.New("unknown metadata format")
+}
+
+func closeFileHandler(file *os.File) {
+	err := file.Close()
+	if err != nil {
+		fmt.Println("Error closing file:", err)
+	}
 }
