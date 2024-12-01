@@ -19,25 +19,19 @@ type PhotoCompressor struct {
 
 func (compressor *PhotoCompressor) Run() error {
 	startTime := time.Now()
-	endTime := time.Now()
-
-	defer func() {
-		endTime = time.Now()
-		duration := endTime.Sub(startTime)
-		fmt.Printf("Total working time: %.2f seconds\n", duration.Seconds())
-	}()
+	defer printDuration(startTime)
 
 	err := createDirIfNotExist(compressor.OutputDir)
 	if err != nil {
 		return err
 	}
 
-	err = filesProcessor(compressor.DirPath, func(path string) {
+	err = compressor.filesProcessor(func(path string) {
 		err := compressor.handleFile(path)
 		if err != nil {
 			fmt.Println("Error processing file:", err)
 		}
-	}, compressor.BunchSize)
+	})
 	if err != nil {
 		return err
 	}
@@ -47,8 +41,6 @@ func (compressor *PhotoCompressor) Run() error {
 }
 
 func (compressor *PhotoCompressor) handleFile(path string) error {
-	fmt.Println("Processing", path)
-
 	metadata, err := parseMetadata(path)
 	if err != nil {
 		return err
@@ -116,4 +108,15 @@ func copyFile(path string, outputDir string) error {
 
 	_, err = io.Copy(outputFile, inputFile)
 	return err
+}
+
+func printDuration(startTime time.Time) {
+	duration := time.Since(startTime)
+	if duration.Minutes() >= 1 {
+		fmt.Printf("Total working time: %.2f minutes\n", duration.Minutes())
+	} else if duration.Seconds() >= 1 {
+		fmt.Printf("Total working time: %.2f seconds\n", duration.Seconds())
+	} else {
+		fmt.Printf("Total working time: %.2f milliseconds\n", duration.Milliseconds())
+	}
 }
