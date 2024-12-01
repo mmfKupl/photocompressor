@@ -4,11 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"photocompressor"
 )
 
 func main() {
-	fmt.Println("INIT")
+	if !checkFFmpegInstalled() {
+		fmt.Println("Error: ffmpeg is not installed.")
+		os.Exit(1)
+	}
+
 	// Define flags
 	inputDir := flag.String("input", "", "Input directory path")
 	outputDir := flag.String("output", "", "Output directory path")
@@ -16,10 +21,6 @@ func main() {
 
 	// Parse flags
 	flag.Parse()
-
-	fmt.Printf("inputDir: %s\n", *inputDir)
-	fmt.Printf("outputDir: %s\n", *outputDir)
-	fmt.Printf("bunchSize: %s\n\n", *bunchSize)
 
 	// Check if flags are provided, if not ask for input
 	if *inputDir == "" {
@@ -62,4 +63,10 @@ func main() {
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
+}
+
+func checkFFmpegInstalled() bool {
+	cmd := exec.Command("ffmpeg", "-version")
+	err := cmd.Run()
+	return err == nil
 }

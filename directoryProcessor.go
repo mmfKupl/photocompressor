@@ -57,7 +57,7 @@ func createDirIfNotExist(dir string) error {
 }
 
 func (compressor *PhotoCompressor) updateLoader(inputFile string, processedFiles, totalFiles int) {
-	//clearConsole()
+	clearConsole()
 
 	fmt.Printf("\033[1m\033[33mInput directory:\033[0m %s\n", compressor.DirPath)    // Bold yellow text for output file
 	fmt.Printf("\033[1m\033[33mOutput directory:\033[0m %s\n", compressor.OutputDir) // Bold yellow text for output file
