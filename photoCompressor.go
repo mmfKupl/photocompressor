@@ -41,19 +41,15 @@ func (compressor *PhotoCompressor) Run() error {
 }
 
 func (compressor *PhotoCompressor) handleFile(path string) error {
-	metadata, err := parseMetadata(path)
-	if err != nil {
-		return err
-	}
-
-	if photoMeta, ok := metadata.(*photoMetadata); ok {
-		err := compressor.copyPhotoFileWithCompression(photoMeta)
+	if filepath.Ext(path) == ".json" {
+		err := copyFile(path, compressor.OutputDir)
 		if err != nil {
 			return err
 		}
+		return nil
 	}
 
-	err = copyFile(path, compressor.OutputDir)
+	err := compressor.copyPhotoFileWithCompression(path)
 	if err != nil {
 		return err
 	}
@@ -61,20 +57,25 @@ func (compressor *PhotoCompressor) handleFile(path string) error {
 	return nil
 }
 
-func (compressor *PhotoCompressor) copyPhotoFileWithCompression(photo *photoMetadata) error {
-	path := photo.FilePath
+func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) error {
 	ext := strings.ToLower(filepath.Ext(path))
 	outputPath := filepath.Join(compressor.OutputDir, strings.TrimSuffix(filepath.Base(path), ext)+ext)
 
 	switch ext {
-	case ".jpg", ".jpeg", ".png", ".heic":
+	case ".jpg", ".jpeg", ".png":
 		outputPath = strings.TrimSuffix(outputPath, ext) + ".jpg"
 		err := ffmpeg.Input(path).
 			Output(outputPath, ffmpeg.KwArgs{"q:v": 25}).
 			OverWriteOutput().
 			Run()
 		if err != nil {
-			return fmt.Errorf("error compressing image: %w", err)
+			return fmt.Errorf("error compressing image '%s': %w", path, err)
+		}
+	case ".heic":
+		// Just copy the HEIC file to the output folder
+		err := copyFile(path, compressor.OutputDir)
+		if err != nil {
+			return fmt.Errorf("error copying HEIC file '%s': %w", path, err)
 		}
 	case ".mp4", ".avi", ".mov", ".mkv":
 		outputPath = strings.TrimSuffix(outputPath, ext) + ".mp4"
@@ -83,10 +84,10 @@ func (compressor *PhotoCompressor) copyPhotoFileWithCompression(photo *photoMeta
 			OverWriteOutput().
 			Run()
 		if err != nil {
-			return fmt.Errorf("error compressing video: %w", err)
+			return fmt.Errorf("error compressing video '%s': %w", path, err)
 		}
 	default:
-		return fmt.Errorf("unsupported file type: %s", ext)
+		return fmt.Errorf("unsupported file type '%s': %s", path, ext)
 	}
 
 	return nil
@@ -113,10 +114,17 @@ func copyFile(path string, outputDir string) error {
 func printDuration(startTime time.Time) {
 	duration := time.Since(startTime)
 	if duration.Minutes() >= 1 {
-		fmt.Printf("Total working time: %.2f minutes\n", duration.Minutes())
+		fmt.Printf("Total working time: %v minutes\n", duration.Minutes())
 	} else if duration.Seconds() >= 1 {
-		fmt.Printf("Total working time: %.2f seconds\n", duration.Seconds())
+		fmt.Printf("Total working time: %v seconds\n", duration.Seconds())
 	} else {
-		fmt.Printf("Total working time: %.2f milliseconds\n", duration.Milliseconds())
+		fmt.Printf("Total working time: %v milliseconds\n", duration.Milliseconds())
+	}
+}
+
+func closeFileHandler(file *os.File) {
+	err := file.Close()
+	if err != nil {
+		logError(fmt.Errorf("Error closing file:", err))
 	}
 }

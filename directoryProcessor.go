@@ -30,7 +30,7 @@ func (compressor *PhotoCompressor) filesProcessor(callback func(string)) error {
 			return err
 		}
 		// Check if the file has a .json extension
-		if !info.IsDir() && filepath.Ext(path) == ".json" {
+		if !info.IsDir() {
 			sem <- struct{}{}
 			wg.Add(1)
 			go func(p string) {
@@ -42,8 +42,8 @@ func (compressor *PhotoCompressor) filesProcessor(callback func(string)) error {
 				mu.Lock()
 				activeFiles = removeFile(activeFiles, p)
 				mu.Unlock()
-				processedFiles += 2
-				compressor.updateLoader(p, processedFiles, totalFiles)
+				processedFiles += 1
+				compressor.updateLoader(processedFiles, totalFiles)
 				<-sem
 			}(path)
 		}
@@ -63,7 +63,7 @@ func createDirIfNotExist(dir string) error {
 	return os.MkdirAll(dir, 0755)
 }
 
-func (compressor *PhotoCompressor) updateLoader(inputFile string, processedFiles, totalFiles int) {
+func (compressor *PhotoCompressor) updateLoader(processedFiles, totalFiles int) {
 	clearConsole()
 
 	fmt.Printf("\033[1m\033[33mInput directory:\033[0m %s\n", compressor.DirPath)
