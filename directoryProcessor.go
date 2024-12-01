@@ -7,6 +7,12 @@ import (
 	"sync"
 )
 
+var (
+	errorsLog   []error
+	activeFiles []string
+	mu          sync.Mutex
+)
+
 func (compressor *PhotoCompressor) filesProcessor(callback func(string)) error {
 	// Create a buffered channel to limit the number of concurrent goroutines
 	sem := make(chan struct{}, compressor.BunchSize)
@@ -25,15 +31,18 @@ func (compressor *PhotoCompressor) filesProcessor(callback func(string)) error {
 		}
 		// Check if the file has a .json extension
 		if !info.IsDir() && filepath.Ext(path) == ".json" {
-			// Acquire a slot in the semaphore
 			sem <- struct{}{}
 			wg.Add(1)
 			go func(p string) {
 				defer wg.Done()
-				// Call the callback function
+				mu.Lock()
+				activeFiles = append(activeFiles, p)
+				mu.Unlock()
 				callback(p)
-				// Release the slot in the semaphore
-				processedFiles++
+				mu.Lock()
+				activeFiles = removeFile(activeFiles, p)
+				mu.Unlock()
+				processedFiles += 2
 				compressor.updateLoader(p, processedFiles, totalFiles)
 				<-sem
 			}(path)
@@ -47,8 +56,6 @@ func (compressor *PhotoCompressor) filesProcessor(callback func(string)) error {
 }
 
 func createDirIfNotExist(dir string) error {
-	fmt.Println("Creating directory", dir)
-
 	_, err := os.Stat(dir)
 	if !os.IsNotExist(err) {
 		return err
@@ -59,12 +66,19 @@ func createDirIfNotExist(dir string) error {
 func (compressor *PhotoCompressor) updateLoader(inputFile string, processedFiles, totalFiles int) {
 	clearConsole()
 
-	fmt.Printf("\033[1m\033[33mInput directory:\033[0m %s\n", compressor.DirPath)    // Bold yellow text for output file
-	fmt.Printf("\033[1m\033[33mOutput directory:\033[0m %s\n", compressor.OutputDir) // Bold yellow text for output file
+	fmt.Printf("\033[1m\033[33mInput directory:\033[0m %s\n", compressor.DirPath)
+	fmt.Printf("\033[1m\033[33mOutput directory:\033[0m %s\n", compressor.OutputDir)
 	fmt.Print("\n")
-	fmt.Printf("\033[1m\033[32mProcessed files:\033[0m %d/%d\n", processedFiles, totalFiles) // Bold green text for processed files
-	fmt.Printf("\033[1m\033[34mProcessing:\033[0m %s\n", inputFile)                          // Bold blue text for current file
+	fmt.Printf("\033[1m\033[32mProcessed files:\033[0m %d/%d\n", processedFiles, totalFiles)
 	fmt.Print("\n")
+	fmt.Println("\u001B[1m\u001B[34mCurrently processing files:\u001B[0m")
+	mu.Lock()
+	for _, file := range activeFiles {
+		fmt.Println(file)
+	}
+	mu.Unlock()
+	fmt.Print("\n")
+	printErrors()
 }
 
 func countFilesInDir(dir string) (int, error) {
@@ -83,4 +97,26 @@ func countFilesInDir(dir string) (int, error) {
 
 func clearConsole() {
 	fmt.Print("\033[H\033[2J")
+}
+
+func logError(err error) {
+	errorsLog = append(errorsLog, err)
+}
+
+func printErrors() {
+	if len(errorsLog) > 0 {
+		fmt.Println("Errors occurred during execution:")
+		for _, err := range errorsLog {
+			fmt.Println(err)
+		}
+	}
+}
+
+func removeFile(files []string, file string) []string {
+	for i, f := range files {
+		if f == file {
+			return append(files[:i], files[i+1:]...)
+		}
+	}
+	return files
 }

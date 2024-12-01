@@ -6,9 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"photocompressor"
+	"runtime"
 )
 
 func main() {
+	// Limit the CPU usage to 2 cores
+	runtime.GOMAXPROCS(1)
+
 	if !checkFFmpegInstalled() {
 		fmt.Println("Error: ffmpeg is not installed.")
 		os.Exit(1)

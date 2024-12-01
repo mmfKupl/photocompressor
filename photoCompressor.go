@@ -29,7 +29,7 @@ func (compressor *PhotoCompressor) Run() error {
 	err = compressor.filesProcessor(func(path string) {
 		err := compressor.handleFile(path)
 		if err != nil {
-			fmt.Println("Error processing file:", err)
+			logError(fmt.Errorf("Error processing file:", err))
 		}
 	})
 	if err != nil {
@@ -64,7 +64,7 @@ func (compressor *PhotoCompressor) handleFile(path string) error {
 func (compressor *PhotoCompressor) copyPhotoFileWithCompression(photo *photoMetadata) error {
 	path := photo.FilePath
 	ext := strings.ToLower(filepath.Ext(path))
-	outputPath := filepath.Join(compressor.OutputDir, strings.TrimSuffix(filepath.Base(path), ext)+"-compressed"+ext)
+	outputPath := filepath.Join(compressor.OutputDir, strings.TrimSuffix(filepath.Base(path), ext)+ext)
 
 	switch ext {
 	case ".jpg", ".jpeg", ".png", ".heic":

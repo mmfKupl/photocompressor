@@ -56,6 +56,6 @@ func parseMetadata(path string) (interface{}, error) {
 func closeFileHandler(file *os.File) {
 	err := file.Close()
 	if err != nil {
-		fmt.Println("Error closing file:", err)
+		logError(fmt.Errorf("Error closing file:", err))
 	}
 }
