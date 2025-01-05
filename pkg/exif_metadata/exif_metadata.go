@@ -24,8 +24,13 @@ func (em *ExifMetadata) GetOriginalTime() (*time.Time, error) {
 	if em == nil {
 		return nil, fmt.Errorf("metadata is nil")
 	}
+	dateTimeOriginalInterface := em.GetByKey("DateTimeOriginal")
+
+	if dateTimeOriginalInterface == nil {
+		return nil, fmt.Errorf("DateTimeOriginal is nil")
+	}
 	dateTimeOriginal := em.GetByKey("DateTimeOriginal").(string)
-	offsetTime := em.GetByKey("OffsetTime").(string)
+	offsetTime := em.GetByKey("OffsetTimeOriginal").(string)
 
 	localTime, err := time.Parse(ExifDateTimeFormat, dateTimeOriginal)
 	if err != nil {

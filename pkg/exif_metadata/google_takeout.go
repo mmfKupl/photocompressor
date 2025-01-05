@@ -27,13 +27,13 @@ func GetGoogleTakeoutMetadata(filePath string) (GoogleTakeoutMetadata, error) {
 func (g *GoogleTakeoutMetadata) ToExifMetadata() *ExifMetadata {
 	dmsCoords := g.getDMS()
 	exifMetadata := ExifMetadata{
-		"Title":            g.Title,
-		"Description":      g.Description,
-		"DateTimeOriginal": g.getPhotoTakenTime().Format(ExifDateTimeFormat),
-		"OffsetTime":       "00:00",
-		"GPSAltitude":      g.getFormatedAltitude(),
-		"GPSLatitude":      dmsCoords.Latitude.String(),
-		"GPSLongitude":     dmsCoords.Longitude.String(),
+		"Title":              g.Title,
+		"Description":        g.Description,
+		"DateTimeOriginal":   g.getPhotoTakenTime().Format(ExifDateTimeFormat),
+		"OffsetTimeOriginal": "00:00",
+		"GPSAltitude":        g.getFormatedAltitude(),
+		"GPSLatitude":        dmsCoords.Latitude.String(),
+		"GPSLongitude":       dmsCoords.Longitude.String(),
 	}
 
 	return &exifMetadata

@@ -103,7 +103,7 @@ func copyExifMetadata(sourceFilePath, targetFilePath string) error {
 		originalTime, _ := sourceExifMetadata.GetOriginalTime()
 		jsonTime, _ := jsonExifMetadata.GetOriginalTime()
 
-		if originalTime == jsonTime {
+		if originalTime == nil || originalTime == jsonTime {
 			useJsonMetadata = false
 		}
 	}
