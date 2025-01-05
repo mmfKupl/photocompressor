@@ -26,7 +26,7 @@ func GetFileMetadata(filePath string) (ExifMetadata, error) {
 }
 
 func CloneMetadataToFile(sourceFilePath, targetFilePath string) error {
-	_, err := executeExiftoolCommand("-tagsFromFile", targetFilePath, "-all<=all", sourceFilePath, "-overwrite_original")
+	_, err := executeExiftoolCommand("-tagsFromFile", sourceFilePath, "-all:all<=all:all", targetFilePath, "-overwrite_original")
 	if err != nil {
 		return err
 	}
