@@ -30,7 +30,15 @@ func (em *ExifMetadata) GetOriginalTime() (*time.Time, error) {
 		return nil, fmt.Errorf("DateTimeOriginal is nil")
 	}
 	dateTimeOriginal := em.GetByKey("DateTimeOriginal").(string)
-	offsetTime := em.GetByKey("OffsetTimeOriginal").(string)
+
+	offsetTimeInterface := em.GetByKey("OffsetTimeOriginal")
+	if offsetTimeInterface == nil {
+		offsetTimeInterface = em.GetByKey("OffsetTime")
+	}
+	if offsetTimeInterface == nil {
+		return nil, fmt.Errorf("OffsetTimeOriginal is nil")
+	}
+	offsetTime := offsetTimeInterface.(string)
 
 	localTime, err := time.Parse(ExifDateTimeFormat, dateTimeOriginal)
 	if err != nil {

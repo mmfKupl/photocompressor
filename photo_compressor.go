@@ -104,7 +104,7 @@ func copyExifMetadata(sourceFilePath, targetFilePath string) error {
 		jsonTime, _ := jsonExifMetadata.GetOriginalTime()
 
 		if originalTime == nil || originalTime == jsonTime {
-			useJsonMetadata = false
+			useJsonMetadata = true
 		}
 	}
 
@@ -130,7 +130,7 @@ func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) (ou
 		if err != nil {
 			return "", fmt.Errorf("error compressing image '%s': %w", path, err)
 		}
-	case ".heic":
+	case ".heic", ".gif":
 		// Just copy the HEIC file to the output folder
 		err := copyFile(path, compressor.OutputDir)
 		if err != nil {

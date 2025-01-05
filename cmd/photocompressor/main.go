@@ -22,7 +22,7 @@ func main() {
 	inputDir := flag.String("input", "", "Input directory path")
 	outputDir := flag.String("output", "", "Output directory path")
 	bunchSize := flag.Int("bunch", 5, "Bunch size")
-	compressLevel := flag.Int("compressLevel", 23, "Compression level")
+	compressLevel := flag.Int("compressLevel", 25, "Compression level")
 
 	// Parse flags
 	flag.Parse()

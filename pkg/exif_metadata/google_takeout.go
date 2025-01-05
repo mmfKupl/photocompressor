@@ -30,7 +30,7 @@ func (g *GoogleTakeoutMetadata) ToExifMetadata() *ExifMetadata {
 		"Title":              g.Title,
 		"Description":        g.Description,
 		"DateTimeOriginal":   g.getPhotoTakenTime().Format(ExifDateTimeFormat),
-		"OffsetTimeOriginal": "00:00",
+		"OffsetTimeOriginal": "+00:00",
 		"GPSAltitude":        g.getFormatedAltitude(),
 		"GPSLatitude":        dmsCoords.Latitude.String(),
 		"GPSLongitude":       dmsCoords.Longitude.String(),
