@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	exif "photocompressor/pkg/exif_metadata"
 	"strings"
 	"time"
 
@@ -46,6 +47,9 @@ func (compressor *PhotoCompressor) Run() error {
 }
 
 func (compressor *PhotoCompressor) handleFile(path string) error {
+	if filepath.Ext(path) == ".DS_Store" {
+		return nil
+	}
 	if filepath.Ext(path) == ".json" {
 		err := copyFile(path, compressor.OutputDir)
 		if err != nil {
@@ -54,7 +58,12 @@ func (compressor *PhotoCompressor) handleFile(path string) error {
 		return nil
 	}
 
-	err := compressor.copyPhotoFileWithCompression(path)
+	outputPath, err := compressor.copyPhotoFileWithCompression(path)
+	if err != nil {
+		return err
+	}
+
+	err = copyExifMetadata(path, outputPath)
 	if err != nil {
 		return err
 	}
@@ -62,9 +71,54 @@ func (compressor *PhotoCompressor) handleFile(path string) error {
 	return nil
 }
 
-func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) error {
+func copyExifMetadata(sourceFilePath, targetFilePath string) error {
+	possibleJsonFile := sourceFilePath + ".json"
+	isJsonFileExist := true
+	useJsonMetadata := true
+	var jsonExifMetadata *exif.ExifMetadata
+
+	if _, err := os.Stat(possibleJsonFile); os.IsNotExist(err) {
+		fmt.Printf("Json file not found: %s\n", possibleJsonFile)
+		isJsonFileExist = false
+		useJsonMetadata = false
+	}
+
+	if isJsonFileExist {
+		googleTakeoutMetadata, err := exif.GetGoogleTakeoutMetadata(possibleJsonFile)
+		if err != nil {
+			fmt.Printf("Error getting metadata from json file: %w", err)
+			useJsonMetadata = false
+		} else {
+			jsonExifMetadata = googleTakeoutMetadata.ToExifMetadata()
+		}
+	}
+
+	sourceExifMetadata, err := exif.GetFileMetadata(sourceFilePath)
+	if err != nil {
+		fmt.Printf("Error getting metadata from source file: %w", err)
+		useJsonMetadata = true
+	}
+
+	if sourceExifMetadata != nil && jsonExifMetadata != nil {
+		originalTime, _ := sourceExifMetadata.GetOriginalTime()
+		jsonTime, _ := jsonExifMetadata.GetOriginalTime()
+
+		if originalTime == jsonTime {
+			useJsonMetadata = false
+		}
+	}
+
+	if useJsonMetadata {
+		return exif.AddMetadataToFile(targetFilePath, jsonExifMetadata)
+	} else {
+		return exif.CloneMetadataToFile(sourceFilePath, targetFilePath)
+	}
+
+}
+
+func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) (outputPath string, err error) {
 	ext := strings.ToLower(filepath.Ext(path))
-	outputPath := filepath.Join(compressor.OutputDir, strings.TrimSuffix(filepath.Base(path), ext)+ext)
+	outputPath = filepath.Join(compressor.OutputDir, strings.TrimSuffix(filepath.Base(path), ext)+ext)
 
 	switch ext {
 	case ".jpg", ".jpeg", ".png":
@@ -74,13 +128,13 @@ func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) err
 			OverWriteOutput().
 			Run()
 		if err != nil {
-			return fmt.Errorf("error compressing image '%s': %w", path, err)
+			return "", fmt.Errorf("error compressing image '%s': %w", path, err)
 		}
 	case ".heic":
 		// Just copy the HEIC file to the output folder
 		err := copyFile(path, compressor.OutputDir)
 		if err != nil {
-			return fmt.Errorf("error copying HEIC file '%s': %w", path, err)
+			return "", fmt.Errorf("error copying HEIC file '%s': %w", path, err)
 		}
 	case ".mp4", ".avi", ".mov", ".mkv":
 		outputPath = strings.TrimSuffix(outputPath, ext) + ".mp4"
@@ -94,13 +148,13 @@ func (compressor *PhotoCompressor) copyPhotoFileWithCompression(path string) err
 			OverWriteOutput().
 			Run()
 		if err != nil {
-			return fmt.Errorf("error compressing video '%s': %w", path, err)
+			return "", fmt.Errorf("error compressing video '%s': %w", path, err)
 		}
 	default:
-		return fmt.Errorf("unsupported file type '%s': %s", path, ext)
+		return "", fmt.Errorf("unsupported file type '%s': %s", path, ext)
 	}
 
-	return nil
+	return outputPath, nil
 }
 
 func copyFile(path string, outputDir string) error {
