@@ -34,12 +34,6 @@ func CloneMetadataToFile(sourceFilePath, targetFilePath string) error {
 }
 
 func AddMetadataToFile(targetFilePath string, metadata *ExifMetadata) error {
-	jsonMetadata, err := metadata.ToJSON()
-	if err != nil {
-		return err
-	}
-	fmt.Println("JJJ", string(jsonMetadata))
-
 	tempFileName, err := createTempJsonFile(metadata)
 	defer func(filePath string) {
 		err := removeTempJsonFile(filePath)
@@ -48,7 +42,7 @@ func AddMetadataToFile(targetFilePath string, metadata *ExifMetadata) error {
 		}
 	}(tempFileName)
 
-	o, err := executeExiftoolCommand(
+	_, err = executeExiftoolCommand(
 		"-json="+tempFileName,
 		targetFilePath,
 		"-overwrite_original",
@@ -56,8 +50,6 @@ func AddMetadataToFile(targetFilePath string, metadata *ExifMetadata) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(string(o))
 
 	return nil
 }
